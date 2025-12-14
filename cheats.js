@@ -871,6 +871,67 @@ registerCheat(
   "Daily shop and post office reset"
 );
 
+registerCheat(
+  "nametags drop",
+  function (params) {
+    const actorEvents189 = events(189);
+    const character =
+      bEngine.getGameAttribute("OtherPlayers").h[bEngine.getGameAttribute("UserInfo")[0]];
+    
+    const amount = parseInt(params[0]) || 1;
+    
+    // Valid nametag indices (0, 2, 32+ don't exist or break the game)
+    const validNametagIndices = [
+      1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
+      21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31
+    ];
+    
+    try {
+      const toChest = cheatConfig.wide.autoloot.tochest;
+      cheatConfig.wide.autoloot.tochest = false;
+      
+      let x = character.getXCenter();
+      let y = character.getValue("ActorEvents_20", "_PlayerNode");
+      
+      let dropped = [];
+      let notFound = [];
+      
+      validNametagIndices.forEach(index => {
+        const nametagId = `EquipmentNametag${index}`;
+        const itemDefinition = itemDefs[nametagId];
+        
+        if (itemDefinition) {
+          actorEvents189._customBlock_DropSomething(nametagId, amount, 0, 0, 2, y, 0, x, y);
+          dropped.push(nametagId);
+        } else {
+          notFound.push(nametagId);
+        }
+      });
+      
+      cheatConfig.wide.autoloot.tochest = toChest;
+      
+      let result = `Dropped ${dropped.length} nametags (x${amount} each)`;
+      if (notFound.length > 0) {
+        result += `\nNot found: ${notFound.join(', ')}`;
+      }
+      return result;
+      
+    } catch (err) {
+      return `Error: ${err}`;
+    }
+  },
+  "Drop all valid nametags. Usage: nametags drop [amount]"
+);
+
+registerCheat(
+  "gallery clear",
+  function (params) {
+    return clearGalleryAndNametags();
+  },
+  "Clear all W7 gallery trophies and nametags"
+);
+
+
 // upgrade stones
 registerCheats({
   name: "upstones",
@@ -4335,6 +4396,66 @@ function setSpelunkValue(arrayIndex, valueIndex, newValue) {
     return false;
   } catch (error) {
     console.error('Error setting Spelunk value:', error);
+    return false;
+  }
+}
+
+function clearGalleryAndNametags() {
+  try {
+    console.log('=== CLEARING GALLERY AND NAMETAGS ===\n');
+    
+    if (!getSpelunk()) {
+      console.error('❌ Spelunk not found!');
+      return false;
+    }
+    
+    console.log('--- BEFORE CLEANUP ---');
+    const galleryBefore = getSpelunkIndex(16);
+    const nametagsBefore = getSpelunkIndex(17);
+    
+    if (!galleryBefore || !nametagsBefore) {
+      console.error('❌ Could not access Gallery or Nametags!');
+      return false;
+    }
+    
+    const trophiesEquipped = galleryBefore.filter(t => t !== -1).length;
+    const totalNametags = nametagsBefore.reduce((sum, count) => sum + count, 0);
+    
+    console.log(`Trophies equipped: ${trophiesEquipped}`);
+    console.log(`Total nametags: ${totalNametags}`);
+    
+    const emptyGallery = new Array(70).fill(-1);
+    if (!setSpelunkIndex(16, emptyGallery)) {
+      console.error('❌ Error clearing Gallery!');
+      return false;
+    }
+    
+    const emptyNametags = new Array(70).fill(0);
+    if (!setSpelunkIndex(17, emptyNametags)) {
+      console.error('❌ Error clearing Nametags!');
+      return false;
+    }
+    
+    console.log('\n--- AFTER CLEANUP ---');
+    const galleryAfter = getSpelunkIndex(16);
+    const nametagsAfter = getSpelunkIndex(17);
+    
+    if (!galleryAfter || !nametagsAfter) {
+      console.error('⚠️ Cleanup may have failed - could not verify result');
+      return false;
+    }
+    
+    const trophiesAfter = galleryAfter.filter(t => t !== -1).length;
+    const nametagsAfterTotal = nametagsAfter.reduce((sum, count) => sum + count, 0);
+    
+    console.log(`Trophies equipped: ${trophiesAfter}`);
+    console.log(`Total nametags: ${nametagsAfterTotal}`);
+    
+    console.log('\n✅ Gallery and Nametags cleared successfully!');
+    return true;
+    
+  } catch (error) {
+    console.error('❌ Error clearing:', error);
     return false;
   }
 }
