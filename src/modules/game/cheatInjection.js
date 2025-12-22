@@ -34,6 +34,9 @@ async function setupIntercept(hook, config, startupCheats, cheatConfig, cdpPort)
   const { DOM, Page, Network, Runtime } = client;
   console.log('Injecting cheats...');
 
+  let achievementMapping = await fs.readFile('achievementMapping.js', 'utf8');
+
+
   let cheats = await fs.readFile('cheats.js', 'utf8');
   cheats = `let startupCheats = ${JSON.stringify(startupCheats)};\nlet cheatConfig = ${objToString(cheatConfig)};\n${cheats}`;
 
@@ -94,6 +97,15 @@ async function setupIntercept(hook, config, startupCheats, cheatConfig, cdpPort)
 
       // Inject cheats directly into the current context
       // This ensures cheats are loaded even after page reloads
+
+      console.log('Loading achievement mapping...');
+      await Runtime.evaluate({
+        expression: achievementMapping,
+        awaitPromise: true,
+        allowUnsafeEvalBlockedByCSP: true
+      });
+
+
       console.log('Loaded cheats...');
       await Runtime.evaluate({
         expression: cheats,

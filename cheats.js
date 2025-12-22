@@ -4400,6 +4400,300 @@ function setSpelunkValue(arrayIndex, valueIndex, newValue) {
   }
 }
 
+// ========================================
+// COMPLETE ALCHEMY RESET (FIXED - Liquid Upgrades)
+// ========================================
+registerCheats({
+  name: "resetalchemy",
+  message: "Complete alchemy reset to minimum values",
+  subcheats: [
+    {
+      name: "confirm",
+      message: "Execute the reset (DESTRUCTIVE!)",
+      fn: function (params) {
+        try {
+          console.log("═══════════════════════════════════════════════════════");
+          console.log("  EXECUTING COMPLETE ALCHEMY RESET");
+          console.log("═══════════════════════════════════════════════════════\n");
+          
+          const cauldronInfo = bEngine.getGameAttribute("CauldronInfo");
+          const cauldronP2W = bEngine.getGameAttribute("CauldronP2W");
+          const results = [];
+          let totalChanges = 0;
+          
+          // ========================================
+          // AUTOMATIC BACKUP
+          // ========================================
+          if (typeof window !== 'undefined') {
+            window.alchemy_reset_backup = {
+              cauldronInfo: deepCopy(cauldronInfo),
+              cauldronP2W: deepCopy(cauldronP2W),
+              timestamp: new Date().toISOString()
+            };
+            results.push("💾 Backup created: window.alchemy_reset_backup");
+            results.push(`   Timestamp: ${window.alchemy_reset_backup.timestamp}\n`);
+          }
+          
+          // ========================================
+          // 1-4. RESET ALL BUBBLES TO 1
+          // ========================================
+          const bubbleColors = ['🟠 Orange', '🟢 Green', '🟣 Purple', '🟡 Yellow'];
+          for (let i = 0; i < 4; i++) {
+            if (cauldronInfo[i]) {
+              let changed = 0;
+              cauldronInfo[i] = cauldronInfo[i].map(level => {
+                if (level > 1) { 
+                  changed++; 
+                  return 1; 
+                }
+                return level;
+              });
+              results.push(`${bubbleColors[i]} Bubbles: ${changed} reset to level 1`);
+              totalChanges += changed;
+            }
+          }
+          
+          // ========================================
+          // 5. RESET VIALS TO 1
+          // ========================================
+          if (cauldronInfo[4]) {
+            let changed = 0;
+            cauldronInfo[4] = cauldronInfo[4].map(level => {
+              if (level > 1) { 
+                changed++; 
+                return 1; 
+              }
+              return level;
+            });
+            results.push(`🧪 Vials: ${changed} reset to level 1`);
+            totalChanges += changed;
+          }
+          
+          // ========================================
+          // 6. EMPTY COLORS (Index 5)
+          // ========================================
+          if (cauldronInfo[5]) {
+            let changed = cauldronInfo[5].filter(v => v !== 0).length;
+            cauldronInfo[5] = [0, 0, 0, 0];
+            if (changed > 0) {
+              results.push(`🎨 Colors: ${changed} emptied (set to 0)`);
+              totalChanges += changed;
+            }
+          }
+          
+          // ========================================
+          // 7. EMPTY LIQUIDS (Index 6) - Current Amount
+          // ========================================
+          if (cauldronInfo[6]) {
+            let changed = 0;
+            cauldronInfo[6] = cauldronInfo[6].map(amount => {
+              if (amount !== 0) {
+                changed++;
+                return 0;
+              }
+              return amount;
+            });
+            if (changed > 0) {
+              results.push(`💧 Liquid Amount: ${changed} emptied (set to 0)`);
+              totalChanges += changed;
+            }
+          }
+          
+          // ========================================
+          // 8. RESET INDEX 7 (if exists)
+          // ========================================
+          if (cauldronInfo[7]) {
+            let changed = 0;
+            const hasUpgrades = cauldronInfo[7].some(v => v !== 0);
+            
+            if (hasUpgrades) {
+              cauldronInfo[7] = cauldronInfo[7].map(upgrade => {
+                if (upgrade !== 0) {
+                  changed++;
+                  return 0;
+                }
+                return upgrade;
+              });
+              
+              results.push(`📋 Index 7: ${changed} values reset to 0`);
+              totalChanges += changed;
+            }
+          }
+          
+          // ========================================
+          // 9. RESET CAULDRON/BUBBLE UPGRADES (Index 8, Cauldrons 0-3)
+          // ========================================
+          if (cauldronInfo[8]) {
+            let bubbleUpgradesChanged = 0;
+            
+            // Reset cauldrons 0-3 (bubble cauldrons)
+            for (let cauldronIndex = 0; cauldronIndex < 4; cauldronIndex++) {
+              if (Array.isArray(cauldronInfo[8][cauldronIndex])) {
+                cauldronInfo[8][cauldronIndex].forEach((upgrade, upgradeIndex) => {
+                  if (Array.isArray(upgrade) && upgrade.length >= 2) {
+                    if (upgrade[0] !== 0 || upgrade[1] !== 0) {
+                      upgrade[0] = 0;
+                      upgrade[1] = 0;
+                      bubbleUpgradesChanged++;
+                    }
+                  }
+                });
+              }
+            }
+            
+            if (bubbleUpgradesChanged > 0) {
+              results.push(`🔧 Bubble Cauldron Upgrades: ${bubbleUpgradesChanged} reset to 0`);
+              totalChanges += bubbleUpgradesChanged;
+            }
+          }
+          
+          // ========================================
+          // 10. RESET LIQUID UPGRADES (Index 8, Cauldrons 4-7) ⭐ FIXED
+          // ========================================
+          if (cauldronInfo[8]) {
+            let liquidUpgradesChanged = 0;
+            const liquidNames = ['💧 Orange Water', '💧 Green Nitrogen', '💧 Purple Liquid', '💧 Yellow Liquid'];
+            
+            // Reset cauldrons 4-7 (liquid upgrades)
+            // Upgrade[2] = Capacity, Upgrade[3] = Regen Rate
+            for (let liquidIndex = 4; liquidIndex < 8; liquidIndex++) {
+              if (Array.isArray(cauldronInfo[8][liquidIndex])) {
+                const liquid = cauldronInfo[8][liquidIndex];
+                
+                // Reset upgrade 2 (Capacity)
+                if (liquid[2] && Array.isArray(liquid[2]) && liquid[2].length >= 2) {
+                  if (liquid[2][0] !== 0 || liquid[2][1] !== 0) {
+                    liquid[2][0] = 0;
+                    liquid[2][1] = 0;
+                    liquidUpgradesChanged++;
+                  }
+                }
+                
+                // Reset upgrade 3 (Regen Rate)
+                if (liquid[3] && Array.isArray(liquid[3]) && liquid[3].length >= 2) {
+                  if (liquid[3][0] !== 0 || liquid[3][1] !== 0) {
+                    liquid[3][0] = 0;
+                    liquid[3][1] = 0;
+                    liquidUpgradesChanged++;
+                  }
+                }
+              }
+            }
+            
+            if (liquidUpgradesChanged > 0) {
+              results.push(`⚗️ Liquid Upgrades (Capacity + Regen): ${liquidUpgradesChanged} reset to 0`);
+              totalChanges += liquidUpgradesChanged;
+            }
+          }
+          
+          // ========================================
+          // 11. RESET INDICES 9 & 10
+          // ========================================
+          if (cauldronInfo[9]) {
+            const hasValues = cauldronInfo[9].some(v => v !== 0);
+            if (hasValues) {
+              cauldronInfo[9] = new Array(cauldronInfo[9].length).fill(0);
+              results.push(`📋 Index 9: reset to 0`);
+              totalChanges++;
+            }
+          }
+          
+          if (cauldronInfo[10]) {
+            const hasValues = cauldronInfo[10].some(v => v !== 0);
+            if (hasValues) {
+              cauldronInfo[10] = new Array(cauldronInfo[10].length).fill(0);
+              results.push(`📋 Index 10: reset to 0`);
+              totalChanges++;
+            }
+          }
+          
+          // ========================================
+          // 12. CLEAN P2W PURCHASES
+          // ========================================
+          let p2wFixed = 0;
+          
+          // Reset indices 1, 4, and 5 in CauldronP2W
+          [1, 4, 5].forEach(index => {
+            if (cauldronP2W[index]) {
+              for (let i = 0; i < cauldronP2W[index].length; i++) {
+                if (cauldronP2W[index][i] !== 0) {
+                  cauldronP2W[index][i] = 0;
+                  p2wFixed++;
+                }
+              }
+            }
+          });
+          
+          if (p2wFixed > 0) {
+            results.push(`💎 P2W Purchases: ${p2wFixed} values reset to 0`);
+            totalChanges += p2wFixed;
+          }
+          
+          // ========================================
+          // FINAL RESULT
+          // ========================================
+          results.push("");
+          results.push("═══════════════════════════════════════════════════════");
+          results.push(`✅ Complete reset finished! Total changes: ${totalChanges}`);
+          results.push("═══════════════════════════════════════════════════════");
+          results.push("");
+          results.push("📊 FINAL VALUES:");
+          results.push("   • All Bubbles: level 1");
+          results.push("   • All Vials: level 1");
+          results.push("   • Colors: [0, 0, 0, 0]");
+          results.push("   • Liquid Amount: [0, 0, 0, 0]");
+          results.push("   • Liquid Capacity Upgrades: [0, 0] for all liquids");
+          results.push("   • Liquid Regen Upgrades: [0, 0] for all liquids");
+          results.push("   • Bubble Cauldron Upgrades: all reset to 0");
+          results.push("   • P2W Purchases: all reset to 0");
+          results.push("");
+          results.push("⚠️ To restore from backup (Chrome DevTools only):");
+          results.push("   const backup = window.alchemy_reset_backup;");
+          results.push("   bEngine.setGameAttribute('CauldronInfo', backup.cauldronInfo);");
+          results.push("   bEngine.setGameAttribute('CauldronP2W', backup.cauldronP2W);");
+          results.push("   console.log('✅ Alchemy restored!');");
+          results.push("");
+          
+          return results.join("\n");
+          
+        } catch (error) {
+          return `❌ Error during alchemy reset: ${error.message}\n${error.stack}`;
+        }
+      }
+    }
+  ],
+  fn: function (params) {
+    // This runs when user types just "resetalchemy"
+    const warning = [
+      "",
+      "⚠️ ═══════════════════════════════════════════════════════",
+      "⚠️  WARNING - COMPLETE ALCHEMY RESET",
+      "⚠️ ═══════════════════════════════════════════════════════",
+      "",
+      "This will reset ALL alchemy to minimum safe values:",
+      "",
+      "  🟠🟢🟣🟡 All Bubbles → level 1",
+      "  🧪 All Vials → level 1",
+      "  💧 Liquid Amount → 0 (empty)",
+      "  ⚗️ Liquid Capacity → 0 (reset)",
+      "  ⚗️ Liquid Regen Rate → 0 (reset)",
+      "  🎨 Colors → 0",
+      "  🔧 Bubble Cauldron Upgrades → 0",
+      "  💎 P2W Purchases → reset",
+      "",
+      "⚠️ This action CANNOT be easily undone!",
+      "⚠️ A backup will be created in: window.alchemy_reset_backup",
+      "",
+      "To confirm and proceed, type:",
+      "  resetalchemy confirm",
+      "",
+      "═══════════════════════════════════════════════════════",
+      ""
+    ];
+    return warning.join("\n");
+  }
+});
+
 function clearGalleryAndNametags() {
   try {
     console.log('=== CLEARING GALLERY AND NAMETAGS ===\n');
@@ -4639,6 +4933,7 @@ async function getChoicesNeedingConfirmation() {
     "setalch",
     "wipe invslot",
     "wipe chestslot",
+    "resetalchemy",
     // "keychain", why is this here?
   ];
 }
