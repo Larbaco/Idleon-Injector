@@ -216,7 +216,7 @@ registerCheat(
 registerCheats({
   name: "unlock",
   message:
-    "unlock portals, rifts, pearls, presets, quickref, teleports, colloseum, silver pens, revives",
+    "unlock portals, rifts, pearls, presets, quickref, teleports, colloseum, silver pens, revives, storagecrafting",
   canToggleSubcheats: true,
   subcheats: [
     {
@@ -227,6 +227,21 @@ registerCheats({
           return entry;
         });
         return `The portals have been unlocked!`;
+      },
+    },
+    {
+      name: "storagecrafting",
+      message: "unlocks craft from storage feature for all items in the anvil",
+      fn: function () {
+        const status = bEngine.getGameAttribute("AnvilCraftStatus");
+        for (let i = 0; i < status.length; i++) {
+          const tab = status[i];
+          if (!tab) continue;
+          for (let j = 0; j < tab.length; j++) {
+            if (tab[j] == 0) tab[j] = 1;
+          }
+        }
+        return "Unlocked all anvil crafts.";
       },
     },
     { name: "divinitypearl", message: "divinity pearls > lvl50" },
@@ -302,11 +317,13 @@ registerCheats({
         ["Bunny Pack", "bon_m"],
         ["Hedgehog Pack", "bon_n"],
         ["Panda Pack", "bon_o"],
+        ["Santa helper bundle", "bon_p"],
       ].map(([name, code]) => createBundleCheat(name, code));
     })(),
   ],
 });
 
+// TODO: fix the proxy in proxy issue that would appear, when minigame is called multiple times.
 const minigameCheat = function (params) {
   setupMinigameProxy.call(this);
   setupCatchingMinigameProxy.call(this);
@@ -381,7 +398,7 @@ registerCheats({
       message: "100% plunderous mob spawn rate",
       configurable: { isObject: true },
     },
-    { name: "candy", message: "enable candy use everywhere" },
+    { name: "candy", message: "candy use everywhere" },
     {
       name: "candytime",
       message: "buffs 1 hr candys in minutes",
@@ -462,8 +479,8 @@ registerCheats({
       name: "smith",
       message: "smithing cost nullification (change maps to have the effect apply).",
     },
-    { name: "companion", message: "Enable companion", configurable: true },
-    { name: "owl", message: "Enable Owl cheats, check config file", configurable: true }
+    { name: "companion", message: "companions cheat", configurable: true },
+    { name: "owl", message: "owl cheats, check config file", configurable: true }
   ],
 });
 
@@ -474,10 +491,11 @@ registerCheats({
   canToggleSubcheats: true,
   subcheats: [
     { name: "boss", message: "unlimited boss attempts" },
-    { name: "roo", message: "Enable Roo cheats, check config file", configurable: true },
-    { name: "alchemy", message: "Enable Alchemy cheats, check config file", configurable: true },
+    { name: "roo", message: "roo cheats, check config file", configurable: true },
+    { name: "alchemy", message: "alchemy cheats, check config file", configurable: true },
     { name: "vialrng", message: "vial unlock upon rolling 1+" },
     { name: "vialattempt", message: "unlimited vial attempts" },
+    { name: "sigilspeed", message: "fast sigil research (see config)" },
   ],
 });
 
@@ -541,7 +559,6 @@ registerCheats({
     { name: "kitchensdiscount", message: "cheaper kitchens and upgrades (see config)" },
     { name: "platesdiscount", message: "cheaper dinner plate upgrades (see config)" },
     { name: "arena", message: "unlimited arena entries" },
-    { name: "sigilspeed", message: "fast sigil research (see config)" },
     {
       name: "mainframe",
       message: "mainframe cheats check config file",
@@ -569,6 +586,10 @@ registerCheats({
       name: "sailing",
       message: "sailing cheats check config file",
       configurable: { isObject: true },
+    },
+    {
+      name: "endercaptains",
+      message: "100% ender captains (requires Emporium bonus unlock)",
     },
     {
       name: "gaming",
@@ -639,7 +660,63 @@ registerCheats({
       name: "endless",
       message: "easy endless runs for summoning",
       configurable: { isObject: true },
-    }
+    },
+    {
+      name: "sneaksymbol",
+      message: "sneaksymbol 100% chance",
+      configurable: { isObject: true },
+    },
+    {
+      name: "ninjaItem",
+      message: "Generates a ninja item based on the floor which ninja twin is inputted.",
+      fn: function (params) {
+        if (params && params[1]) {
+          const char = parseInt(params[1]);
+          let loopTimes = 1;
+
+          // TODO: make this dynamic with character count
+          if (char < 0 || char > 9)
+            return `Please choose a ninja twin to generate item, 0 -> first char, 1 -> second char.`;
+          try {
+            loopTimes = params[2] && parseInt(params[2]) > 0 ? parseInt(params[2]) : 1;
+            const actorEvents579 = events(579);
+            let n = 0;
+            while (n < loopTimes) {
+              actorEvents579._customBlock_Ninja("GenerateItem", char, 0);
+              n++;
+            }
+            return `Generated ${loopTimes} ninja items for character ${char}`;
+          } catch (err) {
+            return `Error: ${err}`;
+          }
+        }
+        return `Please choose a ninja twin to generate item, 0 -> first char, 1 -> second char.`;
+      },
+    },
+    {
+      name: "sumunit",
+      message: "Set summoning units to be always a certain type",
+      fn: function (params) {
+        if (params && params[1]) {
+          try {
+            if (params[1] === "reset") {
+              cheatConfig.w6.summoning["UnitTypeDraw"] = (t) => t;
+              return `summoning units has been reset to default`;
+            }
+
+            const summonUnit = summonUnits[params[1]];
+            if (summonUnit || summonUnit === 0) {
+              cheatConfig.w6.summoning["UnitTypeDraw"] = (t) => summonUnit;
+              return `${params[1]} set as unit to be drawn`;
+            }
+            return `no such unit ${params[1]} found`;
+          } catch (err) {
+            return `Error: ${err}`;
+          }
+        }
+        return `Please input a unit name 'basic' 'vrumbi' 'bloomy' 'tonka' 'regalis' 'sparkie' 'guardio' 'muddah' OR 'reset' to summon as per normal.`;
+      },
+    },
   ],
 });
 
@@ -679,11 +756,6 @@ registerCheats({
       configurable: { isObject: true },
     },
     {
-      name: "sneaksymbol",
-      message: "sneaksymbol 100% chance",
-      configurable: { isObject: true },
-    },
-    {
       name: "bubba",
       message: "bubba cheats check config file",
       configurable: { isObject: true },
@@ -695,60 +767,6 @@ registerCheats({
     },
   ],
 });
-
-//summoning game cheat
-registerCheat(
-  "summoning",
-  function (params) {
-    if (params && params[0]) {
-      try {
-        if (params[0] === "reset") {
-          cheatConfig.w6.summoning["UnitTypeDraw"] = (t) => t;
-          return `summoning units has been reset to default`;
-        }
-
-        const summonUnit = summonUnits[params[0]];
-        if (summonUnit || summonUnit === 0) {
-          cheatConfig.w6.summoning["UnitTypeDraw"] = (t) => summonUnit;
-          return `${params[0]} set as unit to be drawn`;
-        }
-        return `no such unit ${params[0]} found`;
-      } catch (err) {
-        return `Error: ${err}`;
-      }
-    }
-    return `Please input a unit name 'basic' 'vrumbi' 'bloomy' 'tonka' 'regalis' OR 'reset' to summon as per normal.`;
-  },
-  "Set summoning units to be always a certain type"
-);
-
-// drop ninja item
-registerCheat(
-  "ninjaItem",
-  function (params) {
-    if (params && params[0]) {
-      const char = parseInt(params[0]);
-      let loopTimes = 1;
-
-      if (char < 0 || char > 9)
-        return `Please choose a ninja twin to generate item, 0 -> first char, 1 -> second char.`;
-      try {
-        loopTimes = params[1] && parseInt(params[1]) > 0 ? parseInt(params[1]) : 1;
-        const actorEvents579 = events(579);
-        let n = 0;
-        while (n < loopTimes) {
-          actorEvents579._customBlock_Ninja("GenerateItem", char, 0);
-          n++;
-        }
-        return `Generated ${loopTimes} ninja items for character ${char}`;
-      } catch (err) {
-        return `Error: ${err}`;
-      }
-    }
-    return `Please choose a ninja twin to generate item, 0 -> first char, 1 -> second char.`;
-  },
-  "Generates a ninja item based on the floor which ninja twin is inputted."
-);
 
 // drop stat specific maxed keychain
 registerCheat(
@@ -849,6 +867,29 @@ registerCheat(
     }
   },
   `Stop dropping these item from monsters, accepts regular expressions. Useful for xtal farming (safe)`
+);
+
+registerCheat(
+  "multiplestacks",
+  function (params) {
+    // init multiplestack, removed from config because of the webui overwriting it
+    if (!cheatConfig.multiplestacks) {
+      cheatConfig.multiplestacks = {
+        items: new Map(),
+      }
+    }
+
+    const name = params[0];
+    const amount = params[1];
+    if (cheatConfig.multiplestacks.items.has(name) && amount <= 1) {
+      cheatConfig.multiplestacks.items.delete(name);
+      return `${name} has been removed from multiplestacks.`;
+    } else {
+      cheatConfig.multiplestacks.items.set(name, amount);
+      return `${name} has been added to multiplestacks with ${amount} stacks.`;
+    }
+  },
+  `Will make multiple stacks of specified items in chest when autochest is on.`
 );
 
 // Quick daily shop and post office reset
@@ -964,11 +1005,6 @@ registerCheats({
     {
       name: "printer",
       message: "Multiplies sample print by x, overrides lab/god bonus",
-      configurable: true,
-    },
-    {
-      name: "monsters",
-      message: "Multiplies the number of monsters on the map by the number given",
       configurable: true,
     },
   ],
@@ -1152,121 +1188,209 @@ registerCheats({
   ],
 });
 
-// A list creator
-const listFunction = function (params) {
-  const foundVals = [];
 
-  if (params[0] == "item") {
-    foundVals.push("Id, ingameName");
-    for (const [key, value] of Object.entries(itemDefs)) {
-      let valName;
-      if (key.startsWith("Cards"))
-        valName = (
-          value.h.desc_line1.replace(/_/g, " ").toLowerCase() +
-          value.h.desc_line2.replace(/_/g, " ").toLowerCase()
-        ).replace("filler", "");
-      else valName = value.h.displayName.replace(/_/g, " ").toLowerCase();
-      foundVals.push(`${key}, ${valName}`);
-    }
-  } else if (params[0] == "bundle") {
-    foundVals.push("Bundle, Message");
-    console.log(this["scripts.CustomMapsREAL"].GemPopupBundleMessages());
-    const GemPopupBundleMessages = this["scripts.CustomMapsREAL"].GemPopupBundleMessages().h;
-    let cleaned;
-    for (const [key, value] of Object.entries(GemPopupBundleMessages)) {
-      cleaned = value.replace(/_/g, " ");
-      if (key != "Blank") {
-        foundVals.push(`${key}, ${cleaned}`);
-        foundVals.push("\n");
+const listFunction = function (params) {
+
+  const formatText = (name) => name.replace(/_/g, " ").toLowerCase();
+
+  const listType = params[0];
+  const filterQuery = params[1];
+  const results = [];
+
+  const listHandlers = {
+    item: () => {
+      results.push("Id, ingameName");
+      for (const [key, value] of Object.entries(itemDefs)) {
+        if (key.startsWith("Cards")) {
+          const desc1 = formatText(value.h.desc_line1);
+          const desc2 = formatText(value.h.desc_line2);
+          const displayName = (desc1 + desc2).replace("filler", "");
+          results.push(`${key}, ${displayName}`);
+          continue;
+        }
+        const displayName = formatText(value.h.displayName);
+        results.push(`${key}, ${displayName}`);
       }
-    }
-  } else if (params[0] == "missing_bundle") {
-    foundVals.push("Bundle, Message");
-    console.log(this["scripts.CustomMapsREAL"].GemPopupBundleMessages());
-    const GemPopupBundleMessages = this["scripts.CustomMapsREAL"].GemPopupBundleMessages().h;
-    const bundles_received = bEngine.gameAttributes.h.BundlesReceived.h; // dict with the same key as GemPopupBundleMessages value is 0 or 1
-    let cleaned;
-    for (const [key, value] of Object.entries(GemPopupBundleMessages)) {
-      cleaned = value.replace(/_/g, " ");
-      if (bundles_received[key] != 1 && key != "Blank") {
-        foundVals.push(`${key}, ${cleaned}`);
-        foundVals.push("\n");
+    },
+
+    bundle: () => {
+      results.push("Bundle, Message");
+      const bundleMessages = this["scripts.CustomMapsREAL"].GemPopupBundleMessages().h;
+
+      for (const [key, value] of Object.entries(bundleMessages)) {
+        if (key === "Blank") continue;
+
+        const cleanedMessage = formatText(value);
+        results.push(`${key}, ${cleanedMessage}`);
+        results.push("\n");
       }
-    }
-  } else if (params[0] == "monster") {
-    foundVals.push("Id, ingameName, HP, Defence, Damage, EXP");
-    for (const [key, value] of Object.entries(monsterDefs)) {
-      const valName = value.h["Name"].replace(/_/g, " ").toLowerCase();
-      foundVals.push(
-        `${key}, ${valName}, ${value.h["MonsterHPTotal"]}, ${value.h["Defence"]}, ${value.h["Damages"][0]}, ${value.h["ExpGiven"]}`
-      );
-    }
-  } else if (params[0] == "monster") {
-    foundVals.push("Id, ingameName, HP, Defence, Damage, EXP");
-    for (const [key, value] of Object.entries(monsterDefs)) {
-      const valName = value.h["Name"].replace(/_/g, " ").toLowerCase();
-      foundVals.push(
-        `${key}, ${valName}, ${value.h["MonsterHPTotal"]}, ${value.h["Defence"]}, ${value.h["Damages"][0]}, ${value.h["ExpGiven"]}`
-      );
-    }
-  } else if (params[0] == "card") {
-    foundVals.push("Id, Entity, Value, Effect");
-    const CardStuff = CList.CardStuff;
-    for (const [key1, value1] of Object.entries(CardStuff))
-      for (const [key2, value2] of Object.entries(value1)) {
-        if (monsterDefs[value2[0]])
-          foundVals.push(
-            `${value2[0]}, ${monsterDefs[value2[0]].h["Name"]}, ${value2[4]}, ${value2[3]}`
-          );
-        else foundVals.push(`${value2[0]}, Unknown, ${value2[4]}, ${value2[3]}`);
+    },
+
+    missing_bundle: () => {
+      results.push("Bundle, Message");
+      const bundleMessages = this["scripts.CustomMapsREAL"].GemPopupBundleMessages().h;
+      const bundlesReceived = bEngine.gameAttributes.h.BundlesReceived.h;
+
+      for (const [key, value] of Object.entries(bundleMessages)) {
+        const isNotReceived = bundlesReceived[key] !== 1;
+        const isNotBlank = key !== "Blank";
+
+        if (isNotReceived && isNotBlank) {
+          const cleanedMessage = formatText(value);
+          results.push(`${key}, ${cleanedMessage}`);
+          results.push("\n");
+        }
       }
-  } else if (params[0] == "class") {
-    foundVals.push("Id, ClassName, PromotesTo");
-    for (const [index, element] of CList.ClassNames.entries())
-      foundVals.push(`${index}, ${element}, [${CList.ClassPromotionChoices[index]}]`);
-  } else if (params[0] == "quest") {
-    foundVals.push("Id, QuestName, NPC, QuestlineNo, paramX1");
-    for (const [index, element] of CList.SceneNPCquestOrder.entries())
-      foundVals.push(`${element}, ${CList.SceneNPCquestInfo[index].join(", ")}`);
-  } else if (params[0] == "map") {
-    foundVals.push("Num_Id, Str_Id, MapName, AFK1, AFK2, Transition");
-    for (const [index, element] of CList.MapName.entries())
-      foundVals.push(
-        `${index}, ${element}, ${CList.MapDispName[index]}, ${CList.MapAFKtarget[index]}, ${CList.MapAFKtargetSide[index]}, [${CList.SceneTransitions[index]}]`
-      );
-  } else if (params[0] == "talent") {
-    foundVals.push("Order, Id, Name");
-    const Order = CList.TalentOrder;
-    const talentDefs = CList.TalentIconNames;
-    for (i = 0; i < Order.length; i++)
-      if (talentDefs[Order[i]] !== "_")
-        foundVals.push(`${i}, ${Order[i]}, ${talentDefs[Order[i]]}`);
-  } else if (params[0] == "ability") {
-    foundVals.push("Order, Id, Name");
-    const Order = CList.TalentOrder;
-    const talentDefs = CList.TalentIconNames;
-    const atkMoveMap = this["scripts.CustomMaps"].atkMoveMap.h;
-    for (i = 0; i < Order.length; i++)
-      if (talentDefs[Order[i]] !== "_")
-        if (atkMoveMap[talentDefs[Order[i]]])
-          // Filter out all non-ability talents
-          foundVals.push(`${i}, ${Order[i]}, ${talentDefs[Order[i]]}`);
-  } else if (params[0] == "smith") {
-    foundVals.push("CraftId, Tab, ItemId, ItemName");
-    const ItemToCraftNAME = CList.ItemToCraftNAME;
-    for (i = 0; i < ItemToCraftNAME.length; i++)
-      for (j = 0; j < ItemToCraftNAME[i].length; j++) {
-        let itemName = itemDefs[ItemToCraftNAME[i][j]].h.displayName
-          .replace(/_/g, " ")
-          .toLowerCase();
-        foundVals.push(`${i + 1}, ${j}, ${ItemToCraftNAME[i][j]}, ${itemName}`);
+    },
+
+    monster: () => {
+      results.push("Id, ingameName, HP, Defence, Damage, EXP");
+      for (const [key, value] of Object.entries(monsterDefs)) {
+        const monsterData = value.h;
+        const name = formatText(monsterData.Name);
+        const hp = monsterData.MonsterHPTotal;
+        const defence = monsterData.Defence;
+        const damage = monsterData.Damages[0];
+        const exp = monsterData.ExpGiven;
+
+        results.push(`${key}, ${name}, ${hp}, ${defence}, ${damage}, ${exp}`);
       }
-  } else if ((params[0] = "gga"))
-    for (const [key, val] of Object.entries(bEngine.gameAttributes.h)) foundVals.push(key);
-  else return "Valid sub-commands are:\n item\n monster\n class\n quest\n map\n talent\n smith";
-  if (params[1]) return foundVals.filter((foundVals) => foundVals.includes(params[1])).join("\n");
-  return foundVals.join("\n"); // Concatenate all lines into one string with new lines
+    },
+
+    card: () => {
+      results.push("Id, Entity, Value, Effect");
+      const cardData = CList.CardStuff;
+
+      for (const category of Object.values(cardData)) {
+        for (const card of Object.values(category)) {
+          if (!card[0]) continue;
+
+          const cardId = card[0];
+          const cardValue = card[4];
+          const cardEffect = card[3];
+          const entityName = monsterDefs[cardId]?.h?.Name ?? "Unknown";
+
+          results.push(`${cardId}, ${entityName}, ${cardValue}, ${cardEffect}`);
+        }
+      }
+    },
+
+    class: () => {
+      results.push("Id, ClassName, PromotesTo");
+      for (const [index, className] of CList.ClassNames.entries()) {
+        const promotions = CList.ClassPromotionChoices[index];
+        results.push(`${index}, ${className}, [${promotions}]`);
+      }
+    },
+
+    quest: () => {
+      results.push("Id, QuestName, NPC, QuestlineNo, paramX1");
+      for (const [index, questId] of CList.SceneNPCquestOrder.entries()) {
+        const questInfo = CList.SceneNPCquestInfo[index].join(", ");
+        results.push(`${questId}, ${questInfo}`);
+      }
+    },
+
+    map: () => {
+      results.push("Num_Id, Str_Id, MapName, AFK1, AFK2, Transition");
+      for (const [index, mapId] of CList.MapName.entries()) {
+        const displayName = CList.MapDispName[index];
+        const afkTarget = CList.MapAFKtarget[index];
+        const afkTargetSide = CList.MapAFKtargetSide[index];
+        const transitions = CList.SceneTransitions[index];
+
+        results.push(`${index}, ${mapId}, ${displayName}, ${afkTarget}, ${afkTargetSide}, [${transitions}]`);
+      }
+    },
+
+    talent: () => {
+      results.push("Order, Id, Name");
+      const talentOrder = CList.TalentOrder;
+      const talentNames = CList.TalentIconNames;
+
+      for (let i = 0; i < talentOrder.length; i++) {
+        const talentId = talentOrder[i];
+        const talentName = talentNames[talentId];
+
+        if (talentName !== "_") {
+          results.push(`${i}, ${talentId}, ${talentName}`);
+        }
+      }
+    },
+
+    ability: () => {
+      results.push("Order, Id, Name");
+      const talentOrder = CList.TalentOrder;
+      const talentNames = CList.TalentIconNames;
+      const abilityMap = this["scripts.CustomMaps"].atkMoveMap.h;
+
+      for (let i = 0; i < talentOrder.length; i++) {
+        const talentId = talentOrder[i];
+        const talentName = talentNames[talentId];
+
+        // Only include talents that are abilities (exist in abilityMap)
+        const isValidTalent = talentName !== "_";
+        const isAbility = abilityMap[talentName];
+
+        if (isValidTalent && isAbility) {
+          results.push(`${i}, ${talentId}, ${talentName}`);
+        }
+      }
+    },
+
+    companion: () => {
+      results.push("Id, Name, Effects");
+      const companions = CList.CompanionDB;
+
+      for (let i = 0; i < companions.length; i++) {
+        const id = companions[i][0];
+        const effects = formatText(companions[i][1]);
+        const ingameName = formatText(monsterDefs[id]?.h?.Name) ?? "Unknown";
+        results.push(`${i}, ${ingameName}, ${effects}`);
+      }
+    },
+
+    smith: () => {
+      results.push("CraftId, Tab, ItemId, ItemName");
+      const craftingRecipes = CList.ItemToCraftNAME;
+
+      for (let tabIndex = 0; tabIndex < craftingRecipes.length; tabIndex++) {
+        const tab = craftingRecipes[tabIndex];
+
+        for (let recipeIndex = 0; recipeIndex < tab.length; recipeIndex++) {
+          const itemId = tab[recipeIndex];
+          const itemName = formatText(itemDefs[itemId].h.displayName);
+
+          results.push(`${tabIndex + 1}, ${recipeIndex}, ${itemId}, ${itemName}`);
+        }
+      }
+    },
+
+    gga: () => {
+      for (const key of Object.keys(bEngine.gameAttributes.h)) {
+        results.push(key);
+      }
+    },
+  };
+
+  const handler = listHandlers[listType];
+  if (!handler) {
+    const validTypes = Object.keys(listHandlers).join("\n ");
+    return `Valid sub-commands are:\n ${validTypes}`;
+  }
+
+  handler.call(this);
+
+  // filter if provided
+  if (filterQuery) {
+    return results
+      .filter((entry) => entry.includes(filterQuery))
+      .join("\n");
+  }
+
+  return results.join("\n");
 };
+
 registerCheats({
   name: "list",
   message: "list something. third param optional filter",
@@ -1329,6 +1453,11 @@ registerCheats({
     {
       name: "gga",
       message: "list game attributes. third param optional filter",
+      fn: listFunction,
+    },
+    {
+      name: "companion",
+      message: "list all companions",
       fn: listFunction,
     },
   ],
@@ -2070,6 +2199,7 @@ function setupFirebaseProxy() {
         setupTrappingProxy.call(this);
         setupTimeCandyProxy.call(this);
         setupAlchProxy.call(this);
+        setupMonsterProxy.call(this);
         return result;
       },
     });
@@ -2198,57 +2328,104 @@ function setupAutoLootProxy() {
   actorEvents44.prototype.init = new Proxy(actorEvents44.prototype.init, {
     apply: function (originalFn, context, argumentsList) {
       let rtn = Reflect.apply(originalFn, context, argumentsList);
-      if (
-        cheatState.wide.autoloot &&
-        bEngine.getGameAttribute("OptionsListAccount")[83] == 0 &&
-        context._BlockAutoLoot === 0 &&
-        context._DungItemStatus === 0 &&
-        context._PlayerDroppedItem === 0 &&
-        actorEvents345._customBlock_Dungon() === -1 &&
-        itemDefs[context._DropType] &&
-        (/.*(LOG|ORE|LEAF|FISH|BUG|CRITTER|SOUL|FOOD|STATUE|TELEPORT|FISHING_ACCESSORY|OFFICE_PEN|BOSS_KEY|FRAGMENT|UPGRADE|MONSTER_DROP|MATERIAL|CARD).*/i.test(
-          itemDefs[context._DropType].h.Type
-        ) ||
-          ["COIN", "Quest22", "Quest23", "Quest24"].includes(context._DropType))
-      ) {
-        context._CollectedStatus = 0;
-        bEngine.gameAttributes.h.DummyNumber4 = 23.34;
-        context._customEvent_ItemPickupInTheFirstPlace();
-        if (context._DropType == "COIN" || context._DropType.substring(0, 5) == "Cards") {
-          cheatConfig.wide.autoloot.tochest && context._DropType == "COIN"
-            ? (bEngine.gameAttributes.h.MoneyBANK =
-              bEngine.getGameAttribute("MoneyBANK") + context._DropAmount)
-            : (bEngine.gameAttributes.h.Money =
-              bEngine.getGameAttribute("Money") + context._DropAmount);
-          context._ImageInst = null;
-          behavior.recycleActor(context.actor);
-          return;
-        }
-        if (cheatConfig.wide.autoloot.tochest) {
-          let chestSlot =
-            bEngine.getGameAttribute("ChestOrder").indexOf(context._DropType) != -1
-              ? bEngine.getGameAttribute("ChestOrder").indexOf(context._DropType)
-              : bEngine.getGameAttribute("ChestOrder").indexOf("Blank");
-          if (bEngine.getGameAttribute("ChestOrder")[chestSlot] == "Blank")
-            bEngine.getGameAttribute("ChestOrder")[chestSlot] = context._DropType;
-          let inventorySlot = bEngine.getGameAttribute("InventoryOrder").indexOf(context._DropType);
-          while (chestSlot !== -1 && inventorySlot !== -1) {
-            bEngine.getGameAttribute("ChestQuantity")[chestSlot] +=
-              bEngine.getGameAttribute("ItemQuantity")[inventorySlot];
-            bEngine.getGameAttribute("ItemQuantity")[inventorySlot] = 0;
-            bEngine.getGameAttribute("InventoryOrder")[inventorySlot] = "Blank";
-            inventorySlot = bEngine.getGameAttribute("InventoryOrder").indexOf(context._DropType);
-          }
-          bEngine.getGameAttribute("ChestQuantity")[chestSlot] += context._DropAmount;
-          context._DropAmount = 0;
-        }
-        if (context._DropAmount == 0) {
-          context._ImageInst = null;
-          behavior.recycleActor(context.actor);
-        } else {
-          context._CollectedStatus = 0;
-        }
+
+      //Easy to read boolean checks
+      const dropType = context._DropType;
+      const itemType = itemDefs[dropType].h.Type;
+      const toChest = cheatConfig.wide.autoloot.itemstochest;
+      const playerDropped = context._PlayerDroppedItem !== 0;
+      const blockAutoLoot = context._BlockAutoLoot !== 0;
+      const safeToLootItem = lootableItemTypes.includes(itemType) || dropType === "Quest110"; // Zenith Clusters.
+      const inDungeon = context._DungItemStatus !== 0 || actorEvents345._customBlock_Dungon() !== -1;
+      const notAnItem = bEngine.getGameAttribute("OptionsListAccount")[83] !== 0 || !itemDefs[dropType];
+
+      // Early Pre-check logic
+      if (!cheatState.wide.autoloot || inDungeon || notAnItem || playerDropped || blockAutoLoot || !safeToLootItem)
+        return;
+
+      // Collect item into first open inventory slot
+      context._CollectedStatus = 0;
+      bEngine.gameAttributes.h.DummyNumber4 = 23.34;
+      context._customEvent_ItemPickupInTheFirstPlace();
+
+      // Get coin and card information.
+      const isCoin = "COIN".includes(dropType);
+      const isCard = dropType.substring(0, 5) === "Cards";
+
+      // Deal with coins and cards.
+      if (isCoin || isCard) {
+        const moneyKey = cheatConfig.wide.autoloot.moneytochest && isCoin ? "MoneyBANK" : "Money";
+        bEngine.gameAttributes.h[moneyKey] = bEngine.getGameAttribute(moneyKey) + context._DropAmount;
+        context._DropAmount = 0;
+        context._ImageInst = null;
+        behavior.recycleActor(context.actor);
+        return;
       }
+
+      // Separate out items for Zenith farming and Material farming
+      // Materials as in Monster drops for stamps and such.
+      const zenithFarming = (itemType === "STATUE" || dropType === "Quest110") && cheatConfig.wide.autoloot.zenithfarm;
+      const materialFarming = itemType === "MONSTER_DROP" && cheatConfig.wide.autoloot.materialfarm;
+      if (!toChest || zenithFarming || materialFarming) {
+        context._DropAmount = 0;
+        context._ImageInst = null;
+        behavior.recycleActor(context.actor);
+        return rtn;
+      }
+
+      // Variable setup for chest and inventory management.
+      const chestOrder = bEngine.getGameAttribute("ChestOrder");
+      const chestQuantity = bEngine.getGameAttribute("ChestQuantity");
+      const inventoryOrder = bEngine.getGameAttribute("InventoryOrder");
+      const itemQuantity = bEngine.getGameAttribute("ItemQuantity");
+
+      // First open slots for item and blank spot.
+      const blankSlot = chestOrder.indexOf("Blank");
+      const dropSlot = chestOrder.indexOf(dropType);
+      let chestSlot = dropSlot !== -1 ? dropSlot : blankSlot;
+
+      // Check if item is on Multiple stacks list.
+      const items = cheatConfig.multiplestacks?.items ?? new Map();
+      // Grab correct slot for multiple stacks.
+      if (items.has(dropType)) {
+        const maxStacks = items.get(dropType);
+        let stackCount = 0;
+        let chestSlotFound = false;
+
+        for (let i = 0; i < chestOrder.length; i++) {
+          if (chestOrder[i] !== dropType) continue;
+
+          stackCount++;
+          if (chestQuantity[i] < 1050000000) {
+            chestSlotFound = true;
+            chestSlot = i;
+            break;
+          }
+          if (stackCount >= maxStacks) {
+            chestSlotFound = true;
+            break;
+          }
+        }
+
+        if (!chestSlotFound && blankSlot !== -1)
+          chestSlot = blankSlot;
+      }
+
+      // Move item from inventory into chest if the slot isn't locked.
+      let inventorySlot;
+      while (chestSlot !== -1 &&
+      (inventorySlot = inventoryOrder.indexOf(dropType)) !== -1 &&
+      !bEngine.getGameAttribute("LockedSlots")[inventorySlot !== -1 ? inventorySlot : 0]) {
+        chestOrder[chestSlot] = chestOrder[chestSlot] === "Blank" ? context._DropType : chestOrder[chestSlot];
+        chestQuantity[chestSlot] += itemQuantity[inventorySlot];
+        itemQuantity[inventorySlot] = 0;
+        inventoryOrder[inventorySlot] = "Blank";
+      }
+
+      // Zero out values and return.
+      context._DropAmount = 0;
+      context._ImageInst = null;
+      behavior.recycleActor(context.actor);
       return rtn;
     },
   });
@@ -2265,7 +2442,6 @@ function setupAutoLootProxy() {
         : Reflect.apply(originalFn, context, argumentsList);
     },
   });
-
 }
 
 function setupCreateElementProxy() {
@@ -2443,25 +2619,23 @@ function setupItemMoveProxy() {
 }
 
 function setupMonsterProxy() {
-  bEngine.setGameAttribute(
-    "MonsterRespawnTime",
-    new Proxy(bEngine.getGameAttribute("MonsterRespawnTime"), {
-      set: function (obj, prop, value) {
-        return (obj[prop] = cheatState.godlike.respawn
-          ? cheatConfig.godlike.respawn(value)
-          : value);
-      },
-    })
-  );
+  const monsterRespawnTime = bEngine.gameAttributes.h.MonsterRespawnTime;
 
-  behavior.getValueForScene = new Proxy(behavior.getValueForScene, {
-    apply: function (originalFn, context, argumentsList) {
-      if (cheatState.multiply.monsters && argumentsList[1] === "_NumberOfEnemies") {
-        return Reflect.apply(originalFn, context, argumentsList) * cheatConfig.multiply.monsters;
-      }
-      return Reflect.apply(originalFn, context, argumentsList);
+  if (monsterRespawnTime._isPatched) return;
+  Object.defineProperty(monsterRespawnTime, "_isPatched", { value: true, enumerable: false });
+
+  const respawnHandler = {
+    set(target, prop, value) {
+      const newValue = cheatState.godlike.respawn
+        ? cheatConfig.godlike.respawn(value)
+        : value;
+      target[prop] = newValue;
+      return true;
     },
-  });
+  };
+
+
+  bEngine.gameAttributes.h.MonsterRespawnTime = new Proxy(monsterRespawnTime, respawnHandler);
 }
 
 function setupItemsMenuProxy() {
@@ -3510,8 +3684,8 @@ function setupw4StuffProxy() {
   actorEvents345._customBlock_Labb = function (...argumentsList) {
     const t = argumentsList[0];
     if (cheatState.w4.labpx && (t == "Dist" || t == "BonusLineWidth")) return 1000; // long lab connections
-    if (cheatState.w4.sigilspeed && t == "SigilBonusSpeed")
-      return cheatConfig.w4.sigilspeed(Reflect.apply(Lab, this, argumentsList));
+    if (cheatState.w2.sigilspeed && t == "SigilBonusSpeed")
+      return cheatConfig.w2.alchemy.sigilspeed(Reflect.apply(Lab, this, argumentsList));
     return Reflect.apply(Lab, this, argumentsList);
   };
 
@@ -3585,9 +3759,20 @@ function setupw5Proxies() {
 
   const Sailing = actorEvents579._customBlock_Sailing;
   actorEvents579._customBlock_Sailing = function (...argumentsList) {
-    return cheatState.w5.sailing && cheatConfig.w5.sailing.hasOwnProperty(argumentsList[0])
-      ? cheatConfig.w5.sailing[argumentsList[0]](Reflect.apply(Sailing, this, argumentsList))
-      : Reflect.apply(Sailing, this, argumentsList);
+    let res = Reflect.apply(Sailing, this, argumentsList);
+    if (cheatState.w5.sailing && cheatConfig.w5.sailing.hasOwnProperty(argumentsList[0]))
+      return cheatConfig.w5.sailing[argumentsList[0]](res);
+    if (cheatState.w5.endercaptains && "CaptainPedastalTypeGen" == argumentsList[0]) {
+      if (
+        1 == this._customBlock_Ninja("EmporiumBonus", 32, 0) &&
+        50 <= Number(bEngine.getGameAttribute("Lv0")[13])
+      ) {
+        const dnsm = bEngine.getGameAttribute("DNSM");
+        dnsm.h.SailzDN4 = 6;
+        return 6;
+      }
+    }
+    return res;
   };
 
   const GamingStatType = actorEvents579._customBlock_GamingStatType;
@@ -3803,8 +3988,8 @@ function setupw7Proxies() {
 
   const Sneaksymbol = actorEvents579._customBlock_Thingies;
   actorEvents579._customBlock_Thingies = function (...argumentList) {
-    return cheatState.w7.sneaksymbol && cheatConfig.w7.sneaksymbol.hasOwnProperty(argumentList[0])
-      ? cheatConfig.w7.sneaksymbol[argumentList[0]](Reflect.apply(Sneaksymbol, this, argumentList))
+    return cheatState.w6.sneaksymbol && cheatConfig.w6.sneaksymbol.hasOwnProperty(argumentList[0])
+      ? cheatConfig.w6.sneaksymbol[argumentList[0]](Reflect.apply(Sneaksymbol, this, argumentList))
       : Reflect.apply(Sneaksymbol, this, argumentList);
   };
 }
@@ -3816,13 +4001,16 @@ function setupMinigameProxy() {
   const miningGameOver = bEngine
     .getGameAttribute("PixelHelperActor")[4]
     .getValue("ActorEvents_229", "_customEvent_MiningGameOver");
+
   const handlerMining = {
     apply: function (originalFn, context, argumentsList) {
       if (cheatState.minigame.mining) return; // Do nothing when game over
       return Reflect.apply(originalFn, context, argumentsList);
     },
   };
+
   const proxyMining = new Proxy(miningGameOver, handlerMining);
+
   bEngine
     .getGameAttribute("PixelHelperActor")[4]
     .setValue("ActorEvents_229", "_customEvent_MiningGameOver", proxyMining);
@@ -3830,22 +4018,26 @@ function setupMinigameProxy() {
   const fishingGameOver = bEngine
     .getGameAttribute("PixelHelperActor")[4]
     .getValue("ActorEvents_229", "_customEvent_FishingGameOver");
+
   const handlerFishing = {
     apply: function (originalFn, context, argumentsList) {
       if (cheatState.minigame.fishing) return; // Do nothing when game over
       return Reflect.apply(originalFn, context, argumentsList);
     },
   };
+
   const proxyFishing = new Proxy(fishingGameOver, handlerFishing);
   bEngine
     .getGameAttribute("PixelHelperActor")[4]
     .setValue("ActorEvents_229", "_customEvent_FishingGameOver", proxyFishing);
 }
+
 // Static fly and hoop positions
 function setupCatchingMinigameProxy() {
   const catchingGameGenInfo = bEngine
     .getGameAttribute("PixelHelperActor")[4]
     .getValue("ActorEvents_229", "_GenInfo");
+
   const handler = {
     get: function (originalObject, property) {
       if (cheatState.minigame.catching) {
@@ -3866,6 +4058,7 @@ function setupGeneralInfoProxy() {
   const generalInfo = bEngine
     .getGameAttribute("PixelHelperActor")[1]
     .getValue("ActorEvents_116", "_GeneralINFO");
+
   const handler = {
     get: function (orignalObject, property) {
       if (cheatState.minigame.choppin && Number(property) === 7)
@@ -3881,21 +4074,24 @@ function setupGeneralInfoProxy() {
 
 function setupPoingProxy() {
   let aiVelocity = 0;
-  Object.defineProperty(
-    bEngine.gameAttributes.h.PixelHelperActor[23].behaviors.behaviors[0].script._GenINFO[63],
-    "1",
-    {
-      get: function () {
-        return cheatState.minigame.poing ? 0 : aiVelocity;
-      },
-      set: function (value) {
-        aiVelocity = value;
-        return true;
-      },
-    }
+
+  const poingGeninfo = bEngine
+    .gameAttributes.h.PixelHelperActor[23]
+    .behaviors.behaviors[0].script._GenINFO;
+
+  Object.defineProperty(poingGeninfo[63], "1", {
+    get: function () {
+      return cheatState.minigame.poing ? 0 : aiVelocity;
+    },
+    set: function (value) {
+      aiVelocity = value;
+      return true;
+    },
+  }
   );
 }
 
+// TODO: to fix the proxy when used portal, we have to create a proxy where the window is created and on that call we call that proxy again.
 function setupScratchMinigameProxy() {
   try {
     const scratchBehavior = bEngine
@@ -4200,6 +4396,15 @@ function getOptionsListAccountIndex(index) {
   }
 }
 
+function cheatStateList() {
+  try {
+    return cheatState;
+  } catch (error) {
+    console.error('Error getting cheatStateList:', error);
+    return null;
+  }
+}
+
 // Here you can add suggestions for the autocomplete
 async function getAutoCompleteSuggestions() {
   let choices = [];
@@ -4226,6 +4431,10 @@ async function getAutoCompleteSuggestions() {
       choices.push({
         message: `nomore ${itemParts[0]} (${itemParts[1]})`,
         value: "nomore " + itemParts[0],
+      });
+      choices.push({
+        message: `multiplestacks ${itemParts[0]} (${itemParts[1]})`,
+        value: "multiplestacks " + itemParts[0],
       });
     }
   });
@@ -4255,12 +4464,11 @@ async function getAutoCompleteSuggestions() {
   Object.keys(summonUnits).forEach(function (item) {
     if (!["error", "null", undefined, "ingameName"].includes(item)) {
       choices.push({
-        message: "summoning " + item,
-        value: "summoning " + item,
+        message: "w6 sumunit " + item,
+        value: "w6 sumunit " + item,
       });
     }
   });
-
 
   Object.keys(keychainStatsMap).forEach(function (item) {
     if (!["error", "null", undefined, "ingameName"].includes(item)) {
@@ -4273,7 +4481,9 @@ async function getAutoCompleteSuggestions() {
   return choices;
 }
 
-// These choices won't execute immediately when you hit enter, they will allow you to add additional input such as a number if you like, then execute the second time you press enter
+// These choices won't execute immediately when you hit enter,
+// they will allow you to add additional input such as a number if you like,
+// then execute the second time you press enter
 // This is now also used to make a value field for the ui
 async function getChoicesNeedingConfirmation() {
   return [
@@ -4286,8 +4496,8 @@ async function getChoicesNeedingConfirmation() {
     "wide candytime",
     "gga",
     "multiply",
-    "summoning",
-    "ninjaItem",
+    "w6 summoning",
+    "w6 ninjaItem",
     "lvl",
     "qnty",
     "setalch",
@@ -4295,6 +4505,7 @@ async function getChoicesNeedingConfirmation() {
     "wipe chestslot",
     "bulk",
     "class",
+    "multiplestacks",
 
     // "keychain", why is this here?
   ];
@@ -4310,12 +4521,17 @@ function getZJSManipulator() {
   }.toString();
 }
 
+// TODO: Make this dynamic, if possible
 const summonUnits = {
   vrumbi: 4,
   bloomy: 3,
   tonka: 5,
   regalis: 2,
   basic: 0,
+  sparkie: 1,
+  guardio: 6,
+  muddah: 7,
+  reset: -1,
 };
 
 const keychainStatsMap = {
@@ -4328,7 +4544,7 @@ const keychainStatsMap = {
   basestr: [1, "EquipmentKeychain6", "_STR", "6"],
   baseagi: [1, "EquipmentKeychain6", "_AGI", "6"],
   basewis: [1, "EquipmentKeychain7", "_WIS", "6"],
-  basestr: [1, "EquipmentKeychain7", "_LUK", "6"],
+  baseluk: [1, "EquipmentKeychain7", "_LUK", "6"],
   pctdef1: [3, "EquipmentKeychain8", "%_DEFENCE", "4"],
   mining: [2, "EquipmentKeychain9", "%_MINING_XP_GAIN", "20"],
   basedmg: [2, "EquipmentKeychain10", "%_TOTAL_DAMAGE", "3"],
@@ -4344,11 +4560,51 @@ const keychainStatsMap = {
   afkgain: [3, "EquipmentKeychain19", "%_ALL_AFK_GAIN", "5"],
   pctdmg: [3, "EquipmentKeychain20", "%_TOTAL_DAMAGE", "7"],
   pctwis: [3, "EquipmentKeychain21", "%_WIS", "6"],
-  pctstr: [3, "EquipmentKeychain21", "%_LUK", "6"],
+  pctluk: [3, "EquipmentKeychain21", "%_LUK", "6"],
   mobrsp: [3, "EquipmentKeychain22", "%_MOB_RESPAWN", "6"],
   skillspd: [3, "EquipmentKeychain23", "%_ALL_SKILL_SPEED", "2"],
   allstats: [3, "EquipmentKeychain24", "%_ALL_STATS", "4"],
 };
+
+// List of Item Types that are safe to loot straight into chest.
+const lootableItemTypes = [
+  "ORE",
+  "BAR",
+  "LOG",
+  "LEAF",
+  "FISH",
+  "BUG",
+  "CRITTER",
+  "SOUL",
+  "SPELUNKY_PAGE",
+  "KITCHEN_LADLE",
+  "PET_EGG",
+  "MATERIAL",
+  "MONSTER_DROP",
+  "BOSS_KEY",
+  "FISHING_ACCESSORY",
+  "FRAGMENT",
+  "TELEPORT",
+  "TALENT_POINT",
+  "OFFICE_PEN",
+  "TELEPORTER",
+  "STATUE",
+  "UPGRADE",
+  "TIME_CANDY",
+  "HEALTH_FOOD",
+  "BOOST_FOOD",
+  "GOLDEN_FOOD",
+  "USABLE",
+  "TICKET",
+  "EXP_BALLOON",
+  "EVENT_WISH",
+  "RESET_POTION",
+  "CARD",
+  "FISTICUFF",  // Coins
+  "GEM",
+  "EVENT_BOX",
+  "QUEST_ITEM",
+];
 
 // function to drop an item on the character 
 function dropOnChar(item, amount) {
@@ -4359,8 +4615,8 @@ function dropOnChar(item, amount) {
     const itemDefinition = itemDefs[item];
 
     if (itemDefinition) {
-      const toChest = cheatConfig.wide.autoloot.tochest;
-      cheatConfig.wide.autoloot.tochest = false;
+      const toChest = cheatConfig.wide.autoloot.itemstochest;
+      cheatConfig.wide.autoloot.itemstochest = false;
 
       let x = character.getXCenter();
       let y = character.getValue("ActorEvents_20", "_PlayerNode");
@@ -4370,7 +4626,7 @@ function dropOnChar(item, amount) {
 
       else actorEvents189._customBlock_DropSomething(item, amount, 0, 0, 2, y, 0, x, y);
 
-      cheatConfig.wide.autoloot.tochest = toChest;
+      cheatConfig.wide.autoloot.itemstochest = toChest;
 
       return `Dropped ${itemDefinition.h.displayName.replace(/_/g, " ")}. (x${amount})`;
 
